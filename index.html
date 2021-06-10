@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Hangman!</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="modulepreload" href="./pkg/package.js" as="script" type="text/javascript">
+    <link rel="preload" href="./pkg/package_bg.wasm" as="fetch" type="application/wasm" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+
+    <style>
+        .game {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .secret_input {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .guesses {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .large_letters {
+            font-family: 'Poppins';
+            font-size: 50px;
+        }
+        button {
+            margin: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <section id="app"></section>
+    <script type="module">
+        import init from '/pkg/package.js';
+        init('/pkg/package_bg.wasm');
+    </script>
+</body>
+
+</html>
