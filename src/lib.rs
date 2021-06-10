@@ -183,9 +183,9 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 fn view(model: &Model) -> Node<Msg> {
     let display_secret_or_plaintext = if model.show_secret_cleartext {
-        "password"
-    } else {
         "text"
+    } else {
+        "password"
     };
 
     let not_there_list = &model.incorrect_guessed_letters;
