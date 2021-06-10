@@ -4,17 +4,17 @@ use seed::{prelude::*, *};
 
 // use some constants for pictures
 const GAME_IMAGES: [&str; 11] = [
-    "/hm/0.png",
-    "/hm/1.png",
-    "/hm/2.png",
-    "/hm/3.png",
-    "/hm/4.png",
-    "/hm/5.png",
-    "/hm/6.png",
-    "/hm/7.png",
-    "/hm/8.png",
-    "/hm/9.png",
-    "/hm/10.png",
+    "/hangman-seed/hm/0.png",
+    "/hangman-seed/hm/1.png",
+    "/hangman-seed/hm/2.png",
+    "/hangman-seed/hm/3.png",
+    "/hangman-seed/hm/4.png",
+    "/hangman-seed/hm/5.png",
+    "/hangman-seed/hm/6.png",
+    "/hangman-seed/hm/7.png",
+    "/hangman-seed/hm/8.png",
+    "/hangman-seed/hm/9.png",
+    "/hangman-seed/hm/10.png",
 ];
 const WON_GAME_IMAGE: &str = "/hm/win.png";
 
@@ -183,9 +183,9 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 fn view(model: &Model) -> Node<Msg> {
     let display_secret_or_plaintext = if model.show_secret_cleartext {
-        "true"
+        "password"
     } else {
-        "false"
+        "text"
     };
 
     let not_there_list = &model.incorrect_guessed_letters;
