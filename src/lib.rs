@@ -16,7 +16,7 @@ const GAME_IMAGES: [&str; 11] = [
     "/hangman-seed/hm/9.png",
     "/hangman-seed/hm/10.png",
 ];
-const WON_GAME_IMAGE: &str = "/hm/win.png";
+const WON_GAME_IMAGE: &str = "/hangman-seed/hm/win.png";
 
 // ------ ------
 //     Init
