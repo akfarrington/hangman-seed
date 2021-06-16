@@ -3,6 +3,8 @@
 use seed::{prelude::*, *};
 
 // use some constants for pictures
+// wasm saved on github has /hangman-seed/hm/0.png to work around github pages' sub-directory
+// (same in index.html)
 const GAME_IMAGES: [&str; 11] = [
     "/hangman-seed/hm/0.png",
     "/hangman-seed/hm/1.png",
@@ -25,10 +27,11 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
     Model {
         show_secret_cleartext: false,
         secret_string: vec![],
-        displayed_secret: "".to_string(),
+        displayed_secret: vec![],
         guessed_letters: vec![],
         incorrect_guessed_letters: vec![],
         game_started: false,
+        last_found_number: None,
         event_streams: vec![],
     }
 }
@@ -36,6 +39,7 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
 // ------ ------
 //     Model
 // ------ ------
+#[derive(PartialEq)]
 struct SecretLetter {
     letter: char,
     displayed: bool,
@@ -44,13 +48,28 @@ struct SecretLetter {
 struct Model {
     show_secret_cleartext: bool,
     secret_string: Vec<SecretLetter>,
-    displayed_secret: String,
+    displayed_secret: Vec<Node<Msg>>,
     guessed_letters: Vec<char>,
     incorrect_guessed_letters: Vec<char>,
     game_started: bool,
+    last_found_number: Option<u32>,
 
     // this is to listen to the keyboard during the game
     event_streams: Vec<StreamHandle>,
+}
+
+impl Model {
+    fn start_new_game(&mut self) {
+        self.game_started = false;
+        self.show_secret_cleartext = false;
+        self.incorrect_guessed_letters = vec![];
+        self.guessed_letters = vec![];
+        self.displayed_secret = vec![];
+        self.secret_string = vec![];
+
+        // stop listening to the keyboard
+        self.event_streams.clear();
+    }
 }
 
 // ------ ------
@@ -73,15 +92,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
         // ends the game and clears the model for the next time
         Msg::ClearGame => {
-            model.game_started = false;
-            model.show_secret_cleartext = false;
-            model.incorrect_guessed_letters = vec![];
-            model.guessed_letters = vec![];
-            model.displayed_secret = "".to_string();
-            model.secret_string = vec![];
-
-            // stop listening to the keyboard
-            model.event_streams.clear();
+            model.start_new_game();
         }
 
         // while typing a new secret, update in real-time
@@ -123,6 +134,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::GuessLetter(event) => {
             let key_code: u32 = event.key_code();
 
+            if &key_code == &(27 as u32) {
+                // not guessing a letter, pushing escape will start a new game, so clear then return
+                model.start_new_game();
+                return;
+            }
+
             // if outside of these bounds it's not a regular letter, so just return
             if !(65..=90).contains(&key_code) {
                 return;
@@ -140,6 +157,9 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             // keep track of whether this letter was used
             let mut letter_was_a_match = false;
 
+            // keep track of how many letters the last guess connected with
+            let mut last_found_number: u32 = 0;
+
             // copy the model secret string Vec and set the display to true if the letters match
             let new_secret_string_list: Vec<SecretLetter> = model
                 .secret_string
@@ -152,8 +172,9 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
                     // if we found a matched letter, update the letter_was_a_match so I know whether
                     // to add this guessed letter to the failed guesses or not
-                    if !letter_was_a_match && matched_letter {
+                    if matched_letter {
                         letter_was_a_match = true;
+                        last_found_number += 1;
                     }
 
                     SecretLetter {
@@ -171,8 +192,10 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 model.displayed_secret =
                     convert_secret_char_list_to_real_string(&new_secret_string_list);
                 model.secret_string = new_secret_string_list;
+                model.last_found_number = Some(last_found_number);
             } else {
                 model.incorrect_guessed_letters.push(uppercase);
+                model.last_found_number = None;
             }
         }
     }
@@ -193,7 +216,7 @@ fn view(model: &Model) -> Node<Msg> {
     let not_there_list: String = format!("no: {}", not_there_list.iter().collect::<String>());
 
     // gets the image to display (0 wrong = pic[0]... 5 wrong = pic[5])
-    let pic_link = if model.displayed_secret.contains('_') {
+    let pic_link = if model.secret_string.iter().any(|letter| !letter.displayed) {
         let mut number_wrong = model.incorrect_guessed_letters.len();
         if number_wrong >= GAME_IMAGES.len() {
             number_wrong = GAME_IMAGES.len() - 1;
@@ -213,7 +236,10 @@ fn view(model: &Model) -> Node<Msg> {
             ],
             div![
                 C!["guesses"],
-                p![&model.displayed_secret, C!["large_letters"]],
+                br!(),
+                &model.displayed_secret,
+                br!(),br!(),
+                print_last_found_number(model),
                 br!(),
                 br!(),
                 button!["New Game!", ev(Ev::Click, move |_| Msg::ClearGame)],
@@ -244,6 +270,14 @@ fn view(model: &Model) -> Node<Msg> {
     }
 }
 
+fn print_last_found_number(model: &Model) -> Node<Msg> {
+    if let Some(last_found) = model.last_found_number {
+        div![format!("Found: {}", last_found)]
+    } else {
+        div![]
+    }
+}
+
 // ------ ------
 //     Start
 // ------ ------
@@ -253,7 +287,7 @@ pub fn start() {
 }
 
 // this is a function to help me change a Vec<SecretLetter> to a string
-fn convert_secret_char_list_to_real_string(letter_list: &[SecretLetter]) -> String {
+fn convert_secret_char_list_to_real_string(letter_list: &[SecretLetter]) -> Vec<Node<Msg>> {
     let mut new_displayed_secret_string: Vec<char> = vec![];
     for letter in letter_list {
         if letter.displayed {
@@ -263,6 +297,16 @@ fn convert_secret_char_list_to_real_string(letter_list: &[SecretLetter]) -> Stri
         }
     }
 
-    new_displayed_secret_string.into_iter().collect()
+    new_displayed_secret_string.into_iter().collect::<String>()
+        .trim()
+        .split(' ')
+        .filter_map(|word| {
+            // filter out any accidental double spaces
+            if word.len() > 0 {
+                Some(span!(word, C!["displayed_word large_letters"]))
+            } else {
+                None
+            }
+        })
+        .collect()
 }
-
